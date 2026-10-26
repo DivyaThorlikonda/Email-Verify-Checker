@@ -1,0 +1,134 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verifier</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>Email Verifier</h1>
+            <p>Check email formats and mail-server information.</p>
+        </header>
+
+        <section class="panel">
+            <label for="emails">Enter email addresses</label>
+            <textarea id="emails"
+                placeholder="alice@gmail.com&#10;invalid-email&#10;bob@example.com"></textarea>
+
+            <p class="hint">Enter one address per line.</p>
+            <button id="checkBtn" onclick="checkEmails()">
+                Check email addresses
+            </button>
+            <p id="message" role="status"></p>
+        </section>
+
+        <section class="panel" id="resultsSection" hidden>
+            <h2>Results</h2>
+            <p id="summary"></p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+
+            <button onclick="downloadCSV()">Download CSV</button>
+        </section>
+
+        <footer>
+            Results are estimates, not a guarantee of delivery.
+        </footer>
+    </main>
+
+    <script>
+        let latestResults = [];
+
+        async function checkEmails() {
+            const emails = document.getElementById("emails").value;
+            const button = document.getElementById("checkBtn");
+            const message = document.getElementById("message");
+
+            button.disabled = true;
+            message.textContent = "Checking addresses...";
+
+            try {
+                const response = await fetch("/check", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({emails})
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Check failed");
+                }
+
+                latestResults = data.results;
+                showResults(latestResults);
+                message.textContent = "Check completed.";
+            } catch (error) {
+                message.textContent = error.message;
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function showResults(results) {
+            const body = document.getElementById("resultsBody");
+            body.replaceChildren();
+
+            results.forEach(item => {
+                const row = document.createElement("tr");
+
+                [item.email, item.status, item.reason].forEach(value => {
+                    const cell = document.createElement("td");
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                });
+
+                body.appendChild(row);
+            });
+
+            document.getElementById("summary").textContent =
+                results.length + " address(es) checked.";
+
+            document.getElementById("resultsSection").hidden = false;
+        }
+
+        function downloadCSV() {
+            const quote = value =>
+                '"' + String(value).replace(/"/g, '""') + '"';
+
+            const rows = [
+                ["Email", "Status", "Reason"],
+                ...latestResults.map(item =>
+                    [item.email, item.status, item.reason])
+            ];
+
+            const csv = rows.map(row => row.map(quote).join(",")).join("\r\n");
+            const blob = new Blob(["\uFEFF" + csv], {type: "text/csv"});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href = url;
+            link.download = "email-results.csv";
+            link.click();
+
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
