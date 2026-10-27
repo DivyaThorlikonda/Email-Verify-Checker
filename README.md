@@ -83,10 +83,10 @@ Open the following address in your browser:
 
 ## Project Links
 
-**Live Application:** Add your deployed public URL here.
+**Live Application:** https://email-verify-checker.onrender.com
 
-**GitHub Repository:** Add your public GitHub repository URL here.
+**GitHub Repository:** https://github.com/DivyaThorlikonda/Email-Verify-Checker
 
 ## Author
-
+Thorlikonda Divya.
 Developed as a Software Development project.
